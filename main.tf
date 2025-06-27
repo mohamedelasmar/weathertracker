@@ -7,10 +7,8 @@ resource "oci_objectstorage_bucket" "my_bucket" {
   name           = "demo-tf-bucket"
   namespace      = data.oci_objectstorage_namespace.ns.namespace
   storage_tier   = "Standard"
-  public_access_type = "NoPublicAccess"
-  versioning {
-    enabled = false
-  }
+  # Removed unsupported 'public_access_type'
+  versioning     = false # Changed from block to argument
 }
 
 data "oci_objectstorage_namespace" "ns" {
