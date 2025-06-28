@@ -59,6 +59,56 @@ resource "oci_objectstorage_bucket" "static_website_bucket" {
   # Tags
   freeform_tags = local.common_tags
 }
+
+
+# ===================================================
+# Upload main HTML file (ADD THIS)
+# ===================================================
+resource "oci_objectstorage_object" "index_html" {
+  bucket    = oci_objectstorage_bucket.static_website_bucket.name
+  object    = "index.html"
+  namespace = data.oci_objectstorage_namespace.ns.namespace
+  source    = "${path.module}/index.html"
+  content_type = "text/html"
+  cache_control = "public, max-age=3600"
+  
+  depends_on = [oci_objectstorage_bucket.static_website_bucket]
+}
+
+# ===================================================
+# CSS files (ADD THIS)
+# ===================================================
+resource "oci_objectstorage_object" "css_files" {
+  for_each = fileset("${path.module}/assets/css/", "*.css")
+
+  bucket    = oci_objectstorage_bucket.static_website_bucket.name
+  object    = "css/${each.value}"
+  namespace = data.oci_objectstorage_namespace.ns.namespace
+  source    = "${path.module}/assets/css/${each.value}"
+
+  content_type  = "text/css"
+  cache_control = "public, max-age=86400" # 24 hours
+
+  depends_on = [oci_objectstorage_bucket.static_website_bucket]
+}
+
+# ===================================================
+# Service Worker (ADD THIS)
+# ===================================================
+resource "oci_objectstorage_object" "service_worker" {
+  count = fileexists("${path.module}/sw.js") ? 1 : 0
+  
+  bucket    = oci_objectstorage_bucket.static_website_bucket.name
+  object    = "sw.js"
+  namespace = data.oci_objectstorage_namespace.ns.namespace
+  source    = "${path.module}/sw.js"
+  content_type = "application/javascript"
+  cache_control = "public, max-age=86400"
+  
+  depends_on = [oci_objectstorage_bucket.static_website_bucket]
+}
+
+
 # JavaScript files (if you want to separate JS)
 resource "oci_objectstorage_object" "js_files" {
   for_each = fileset("${path.module}/assets/js/", "*.js")
@@ -74,9 +124,8 @@ resource "oci_objectstorage_object" "js_files" {
   depends_on = [oci_objectstorage_bucket.static_website_bucket]
 }
 
-# Images and other assets
 resource "oci_objectstorage_object" "image_files" {
-  for_each = fileset("${path.module}/assets/images/", "*.{png,jpg,jpeg,gif,svg,ico}")
+  for_each = length(fileset("${path.module}/assets/images/", "*.{png,jpg,jpeg,gif,svg,ico}")) > 0 ? fileset("${path.module}/assets/images/", "*.{png,jpg,jpeg,gif,svg,ico}") : []
 
   bucket    = oci_objectstorage_bucket.static_website_bucket.name
   object    = "images/${each.value}"
