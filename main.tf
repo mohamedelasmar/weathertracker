@@ -38,8 +38,11 @@ resource "oci_objectstorage_bucket" "static_website_bucket" {
   name           = local.bucket_name
   namespace      = data.oci_objectstorage_namespace.ns.namespace
 
-  # Enable public access for static website hosting
+  # Make bucket public for static website hosting
   access_type = "ObjectRead"
+  
+  # Add public access policy
+  public_access_type = "ObjectRead"
 
   # Enable versioning for backup purposes
   versioning = "Enabled"
@@ -60,36 +63,6 @@ resource "oci_objectstorage_bucket" "static_website_bucket" {
   # Tags
   freeform_tags = local.common_tags
 }
-
-# ===================================================
-# PAR (Pre-Authenticated Request) for Public Access
-# ===================================================
-
-resource "oci_objectstorage_preauthrequest" "static_website_par" {
-  access_type  = "ObjectRead"
-  bucket       = oci_objectstorage_bucket.static_website_bucket.name
-  name         = "${local.bucket_name}-public-read"
-  namespace    = data.oci_objectstorage_namespace.ns.namespace
-  time_expires = timeadd(timestamp(), "8760h") # 1 year from now
-
-  # Allow access to all objects in the bucket
-  object_name = "*"
-}
-## CSS file (if you want to separate CSS)
-resource "oci_objectstorage_object" "css_files" {
-  for_each = fileset("${path.module}/assets/css/", "*.css")
-
-  bucket    = oci_objectstorage_bucket.static_website_bucket.name
-  object    = "css/${each.value}"
-  namespace = data.oci_objectstorage_namespace.ns.namespace
-  source    = "${path.module}/assets/css/${each.value}"
-
-  content_type  = "text/css"
-  cache_control = "public, max-age=86400" # 24 hours
-
-  depends_on = [oci_objectstorage_bucket.static_website_bucket]
-}
-
 # JavaScript files (if you want to separate JS)
 resource "oci_objectstorage_object" "js_files" {
   for_each = fileset("${path.module}/assets/js/", "*.js")
@@ -147,18 +120,3 @@ output "bucket_url" {
   value       = "https://objectstorage.${data.oci_identity_region_subscriptions.home_region_subscriptions.region_subscriptions[0].region_name}.oraclecloud.com/n/${data.oci_objectstorage_namespace.ns.namespace}/b/${oci_objectstorage_bucket.static_website_bucket.name}/o/"
 }
 
-output "website_url" {
-  description = "URL to access the static website"
-  value       = "${oci_objectstorage_preauthrequest.static_website_par.access_uri}index.html"
-}
-
-output "par_access_uri" {
-  description = "Pre-authenticated request URI for public access"
-  value       = oci_objectstorage_preauthrequest.static_website_par.access_uri
-  sensitive   = true
-}
-
-output "par_expires" {
-  description = "When the pre-authenticated request expires"
-  value       = oci_objectstorage_preauthrequest.static_website_par.time_expires
-}

@@ -1,0 +1,848 @@
+/**
+ * Weather Tracker - Main JavaScript
+ * OCI Integration Ready
+ */
+
+const API_CONFIG = {
+    baseUrl: 'https://your-api-gateway-url.oci.oraclecloud.com/api',
+    weatherEndpoint: '/weather',
+    alertsEndpoint: '/alerts',
+    // Add your API key or authentication headers here
+    headers: {
+        'Content-Type': 'application/json',
+        // 'Authorization': 'Bearer your-jwt-token',
+        // 'X-API-Key': 'your-api-key'
+    }
+};
+
+const STORAGE_KEYS = {
+    cities: 'weatherCities',
+    alerts: 'weatherAlerts',
+    weatherData: 'weatherData'
+};
+
+const WEATHER_CONDITIONS = [
+    'Sunny', 'Partly Cloudy', 'Cloudy', 'Overcast', 
+    'Light Rain', 'Heavy Rain', 'Thunderstorm', 
+    'Snow', 'Fog', 'Windy'
+];
+
+const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+// ===================================================
+// Application State
+// ===================================================
+
+class WeatherApp {
+    constructor() {
+        this.cities = [];
+        this.alerts = [];
+        this.weatherData = {};
+        this.isLoading = false;
+        this.refreshTimer = null;
+        
+        this.initializeElements();
+        this.bindEvents();
+        this.init();
+    }
+
+    // ===================================================
+    // Initialization
+    // ===================================================
+
+    initializeElements() {
+        // Form elements
+        this.searchForm = document.getElementById('searchForm');
+        this.cityInput = document.getElementById('cityInput');
+        this.alertForm = document.getElementById('alertForm');
+        
+        // Alert form elements
+        this.alertCity = document.getElementById('alertCity');
+        this.alertType = document.getElementById('alertType');
+        this.alertOperator = document.getElementById('alertOperator');
+        this.alertValue = document.getElementById('alertValue');
+        
+        // Display elements
+        this.weatherGrid = document.getElementById('weatherGrid');
+        this.alertList = document.getElementById('alertList');
+        this.messageDiv = document.getElementById('message');
+    }
+
+    bindEvents() {
+        this.searchForm.addEventListener('submit', (e) => this.handleAddCity(e));
+        this.alertForm.addEventListener('submit', (e) => this.handleCreateAlert(e));
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                this.refreshWeatherData();
+            }
+        });
+
+        // Visibility change handler for auto-refresh
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+                this.refreshWeatherData();
+            }
+        });
+    }
+
+    async init() {
+        this.showMessage('Initializing Weather Tracker...', 'loading');
+        
+        try {
+            this.loadStoredData();
+            await this.refreshWeatherData();
+            this.updateWeatherDisplay();
+            this.updateAlertDisplay();
+            this.updateCityOptions();
+            this.startAutoRefresh();
+            this.requestNotificationPermission();
+            
+            this.showMessage('Weather Tracker ready!', 'success');
+        } catch (error) {
+            console.error('Initialization error:', error);
+            this.showMessage('Failed to initialize. Using offline mode.', 'error');
+        }
+    }
+
+    // ===================================================
+    // Data Management
+    // ===================================================
+
+    loadStoredData() {
+        const storedCities = localStorage.getItem(STORAGE_KEYS.cities);
+        const storedAlerts = localStorage.getItem(STORAGE_KEYS.alerts);
+        const storedWeatherData = localStorage.getItem(STORAGE_KEYS.weatherData);
+        
+        if (storedCities) {
+            this.cities = JSON.parse(storedCities);
+        }
+        
+        if (storedAlerts) {
+            this.alerts = JSON.parse(storedAlerts);
+        }
+        
+        if (storedWeatherData) {
+            this.weatherData = JSON.parse(storedWeatherData);
+            // Check if data is recent (less than 1 hour old)
+            const dataAge = Date.now() - (this.weatherData.lastUpdated || 0);
+            if (dataAge > 60 * 60 * 1000) {
+                this.weatherData = {};
+            }
+        }
+    }
+
+    saveData() {
+        try {
+            localStorage.setItem(STORAGE_KEYS.cities, JSON.stringify(this.cities));
+            localStorage.setItem(STORAGE_KEYS.alerts, JSON.stringify(this.alerts));
+            this.weatherData.lastUpdated = Date.now();
+            localStorage.setItem(STORAGE_KEYS.weatherData, JSON.stringify(this.weatherData));
+        } catch (error) {
+            console.error('Failed to save data:', error);
+        }
+    }
+
+    // ===================================================
+    // Weather API Integration
+    // ===================================================
+
+    async fetchWeatherData(city) {
+        try {
+            // Uncomment and modify this section when connecting to your OCI API
+            /*
+            const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.weatherEndpoint}?city=${encodeURIComponent(city)}`, {
+                method: 'GET',
+                headers: API_CONFIG.headers
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            return this.normalizeWeatherData(data, city);
+            */
+            
+            // Mock data for demonstration
+            return this.generateMockWeatherData(city);
+        } catch (error) {
+            console.error(`Failed to fetch weather for ${city}:`, error);
+            throw new Error(`Unable to fetch weather data for ${city}`);
+        }
+    }
+
+    generateMockWeatherData(city) {
+        const condition = WEATHER_CONDITIONS[Math.floor(Math.random() * WEATHER_CONDITIONS.length)];
+        const temperature = Math.round(Math.random() * 35 + 5); // 5-40°C
+        const humidity = Math.round(Math.random() * 50 + 30); // 30-80%
+        const windSpeed = Math.round(Math.random() * 20 + 5); // 5-25 km/h
+        const pressure = Math.round(Math.random() * 50 + 1000); // 1000-1050 hPa
+        
+        return {
+            city: city,
+            temperature: temperature,
+            humidity: humidity,
+            condition: condition,
+            windSpeed: windSpeed,
+            pressure: pressure,
+            feelsLike: temperature + Math.round(Math.random() * 6 - 3),
+            uvIndex: Math.round(Math.random() * 11),
+            visibility: Math.round(Math.random() * 15 + 5),
+            lastUpdated: new Date().toISOString()
+        };
+    }
+
+    normalizeWeatherData(data, city) {
+        // Normalize data from different API sources
+        return {
+            city: city,
+            temperature: data.temperature || data.temp || 0,
+            humidity: data.humidity || 0,
+            condition: data.condition || data.weather || 'Unknown',
+            windSpeed: data.windSpeed || data.wind_speed || 0,
+            pressure: data.pressure || 1013,
+            feelsLike: data.feelsLike || data.feels_like || data.temperature,
+            uvIndex: data.uvIndex || data.uv_index || 0,
+            visibility: data.visibility || 10,
+            lastUpdated: data.lastUpdated || new Date().toISOString()
+        };
+    }
+
+    // ===================================================
+    // City Management
+    // ===================================================
+
+    async handleAddCity(e) {
+        e.preventDefault();
+        const city = this.cityInput.value.trim();
+        
+        if (!city) return;
+        
+        const cityKey = city.toLowerCase();
+        if (this.cities.includes(cityKey)) {
+            this.showMessage('City already added!', 'error');
+            return;
+        }
+
+        this.showMessage('Adding city...', 'loading');
+        
+        try {
+            const weatherInfo = await this.fetchWeatherData(city);
+            this.cities.push(cityKey);
+            this.weatherData[cityKey] = weatherInfo;
+            
+            this.updateCityOptions();
+            this.updateWeatherDisplay();
+            this.saveData();
+            
+            this.cityInput.value = '';
+            this.showMessage(`${city} added successfully!`, 'success');
+            
+            // Add animation to new card
+            setTimeout(() => {
+                const newCard = document.querySelector(`[data-city="${cityKey}"]`);
+                if (newCard) {
+                    newCard.style.animation = 'fadeInUp 0.6s ease-out';
+                }
+            }, 100);
+        } catch (error) {
+            this.showMessage(`Failed to add ${city}. ${error.message}`, 'error');
+        }
+    }
+
+    removeCity(cityName) {
+        const cityKey = cityName.toLowerCase();
+        this.cities = this.cities.filter(city => city !== cityKey);
+        delete this.weatherData[cityKey];
+        this.alerts = this.alerts.filter(alert => alert.city !== cityKey);
+        
+        this.updateCityOptions();
+        this.updateWeatherDisplay();
+        this.updateAlertDisplay();
+        this.saveData();
+        
+        this.showMessage('City removed successfully!', 'success');
+    }
+
+    // ===================================================
+    // Display Updates
+    // ===================================================
+
+    updateWeatherDisplay() {
+        if (!this.weatherGrid) return;
+        
+        this.weatherGrid.innerHTML = '';
+        
+        if (this.cities.length === 0) {
+            this.weatherGrid.innerHTML = `
+                <div class="loading">
+                    <h3>🌤️ Welcome to Weather Tracker!</h3>
+                    <p>Add a city above to start tracking weather conditions.</p>
+                </div>
+            `;
+            return;
+        }
+
+        this.cities.forEach(city => {
+            const data = this.weatherData[city];
+            if (data) {
+                const card = this.createWeatherCard(data);
+                this.weatherGrid.appendChild(card);
+            } else {
+                // Show loading card for cities without data
+                const loadingCard = this.createLoadingCard(city);
+                this.weatherGrid.appendChild(loadingCard);
+            }
+        });
+    }
+
+    createWeatherCard(data) {
+        const card = document.createElement('div');
+        card.className = 'weather-card glass-card';
+        card.setAttribute('data-city', data.city.toLowerCase());
+        
+        const lastUpdated = new Date(data.lastUpdated);
+        const timeAgo = this.getTimeAgo(lastUpdated);
+        
+        card.innerHTML = `
+            <div class="city-header">
+                <div class="city-name">${this.capitalizeCity(data.city)}</div>
+                <button class="remove-btn btn-danger" onclick="weatherApp.removeCity('${data.city}')" 
+                        title="Remove ${data.city}">
+                    ×
+                </button>
+            </div>
+            <div class="weather-info">
+                <div class="weather-item">
+                    <div class="weather-label">Temperature</div>
+                    <div class="weather-value temp-value">${data.temperature}°C</div>
+                </div>
+                <div class="weather-item">
+                    <div class="weather-label">Condition</div>
+                    <div class="weather-value">${data.condition}</div>
+                </div>
+                <div class="weather-item">
+                    <div class="weather-label">Humidity</div>
+                    <div class="weather-value">${data.humidity}%</div>
+                </div>
+                <div class="weather-item">
+                    <div class="weather-label">Wind Speed</div>
+                    <div class="weather-value">${data.windSpeed} km/h</div>
+                </div>
+                <div class="weather-item">
+                    <div class="weather-label">Feels Like</div>
+                    <div class="weather-value">${data.feelsLike}°C</div>
+                </div>
+                <div class="weather-item">
+                    <div class="weather-label">Pressure</div>
+                    <div class="weather-value">${data.pressure} hPa</div>
+                </div>
+            </div>
+            <div class="last-updated">
+                Last updated: ${timeAgo}
+            </div>
+        `;
+        
+        return card;
+    }
+
+    createLoadingCard(city) {
+        const card = document.createElement('div');
+        card.className = 'weather-card glass-card';
+        card.setAttribute('data-city', city.toLowerCase());
+        
+        card.innerHTML = `
+            <div class="city-header">
+                <div class="city-name">${this.capitalizeCity(city)}</div>
+                <button class="remove-btn btn-danger" onclick="weatherApp.removeCity('${city}')" 
+                        title="Remove ${city}">
+                    ×
+                </button>
+            </div>
+            <div class="loading">
+                <div class="spinner"></div>
+                <p>Loading weather data...</p>
+            </div>
+        `;
+        
+        // Fetch data for this city
+        this.fetchWeatherData(city)
+            .then(data => {
+                this.weatherData[city.toLowerCase()] = data;
+                this.updateWeatherDisplay();
+                this.saveData();
+            })
+            .catch(error => {
+                console.error(`Failed to load data for ${city}:`, error);
+                card.innerHTML = `
+                    <div class="city-header">
+                        <div class="city-name">${this.capitalizeCity(city)}</div>
+                        <button class="remove-btn btn-danger" onclick="weatherApp.removeCity('${city}')" 
+                                title="Remove ${city}">
+                            ×
+                        </button>
+                    </div>
+                    <div class="error">
+                        Failed to load weather data
+                    </div>
+                `;
+            });
+        
+        return card;
+    }
+
+    // ===================================================
+    // Alert Management
+    // ===================================================
+
+    async handleCreateAlert(e) {
+        e.preventDefault();
+        
+        const alertData = {
+            city: this.alertCity.value,
+            type: this.alertType.value,
+            operator: this.alertOperator.value,
+            value: this.alertValue.value,
+            id: Date.now(),
+            created: new Date().toISOString()
+        };
+
+        if (!this.validateAlert(alertData)) {
+            return;
+        }
+
+        try {
+            // Uncomment when connecting to OCI API
+            /*
+            const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.alertsEndpoint}`, {
+                method: 'POST',
+                headers: API_CONFIG.headers,
+                body: JSON.stringify(alertData)
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            */
+            
+            this.alerts.push(alertData);
+            this.updateAlertDisplay();
+            this.saveData();
+            
+            this.alertForm.reset();
+            this.showMessage('Alert created successfully!', 'success');
+            
+            // Check if alert should trigger immediately
+            this.checkAlerts();
+        } catch (error) {
+            this.showMessage('Failed to create alert: ' + error.message, 'error');
+        }
+    }
+
+    validateAlert(alertData) {
+        if (!alertData.city || !alertData.type || !alertData.operator || !alertData.value) {
+            this.showMessage('Please fill in all alert fields', 'error');
+            return false;
+        }
+
+        if (alertData.type !== 'condition' && isNaN(alertData.value)) {
+            this.showMessage('Alert value must be a number for temperature and humidity', 'error');
+            return false;
+        }
+
+        return true;
+    }
+
+    updateAlertDisplay() {
+        if (!this.alertList) return;
+        
+        this.alertList.innerHTML = '';
+        
+        if (this.alerts.length === 0) {
+            this.alertList.innerHTML = '<div class="loading">No alerts configured</div>';
+            return;
+        }
+
+        this.alerts.forEach(alert => {
+            const alertItem = this.createAlertItem(alert);
+            this.alertList.appendChild(alertItem);
+        });
+    }
+
+    createAlertItem(alert) {
+        const alertItem = document.createElement('div');
+        alertItem.className = 'alert-item';
+        
+        const conditionText = this.getAlertConditionText(alert);
+        
+        alertItem.innerHTML = `
+            <div class="alert-info">
+                <div class="alert-city">${this.capitalizeCity(alert.city)}</div>
+                <div class="alert-condition">${conditionText}</div>
+            </div>
+            <button class="remove-btn btn-danger" onclick="weatherApp.removeAlert(${alert.id})" 
+                    title="Remove alert">
+                ×
+            </button>
+        `;
+        
+        return alertItem;
+    }
+
+    getAlertConditionText(alert) {
+        const operatorText = {
+            'above': 'is above',
+            'below': 'is below',
+            'equals': 'equals'
+        };
+
+        const typeText = {
+            'temperature': 'Temperature',
+            'humidity': 'Humidity',
+            'condition': 'Weather condition'
+        };
+
+        const unit = alert.type === 'temperature' ? '°C' : 
+                    alert.type === 'humidity' ? '%' : '';
+
+        return `Alert when ${typeText[alert.type]} ${operatorText[alert.operator]} ${alert.value}${unit}`;
+    }
+
+    removeAlert(alertId) {
+        this.alerts = this.alerts.filter(alert => alert.id !== alertId);
+        this.updateAlertDisplay();
+        this.saveData();
+        this.showMessage('Alert removed successfully!', 'success');
+    }
+
+    checkAlerts() {
+        this.alerts.forEach(alert => {
+            const cityData = this.weatherData[alert.city];
+            if (!cityData) return;
+
+            let currentValue;
+            switch (alert.type) {
+                case 'temperature':
+                    currentValue = cityData.temperature;
+                    break;
+                case 'humidity':
+                    currentValue = cityData.humidity;
+                    break;
+                case 'condition':
+                    currentValue = cityData.condition;
+                    break;
+            }
+
+            if (this.shouldTriggerAlert(alert, currentValue)) {
+                this.triggerAlert(alert, currentValue);
+            }
+        });
+    }
+
+    shouldTriggerAlert(alert, currentValue) {
+        const alertValue = isNaN(alert.value) ? alert.value : parseFloat(alert.value);
+
+        switch (alert.operator) {
+            case 'above':
+                return currentValue > alertValue;
+            case 'below':
+                return currentValue < alertValue;
+            case 'equals':
+                return currentValue == alertValue;
+            default:
+                return false;
+        }
+    }
+
+    async triggerAlert(alert, currentValue) {
+        const alertMessage = `${this.capitalizeCity(alert.city)}: ${alert.type} is ${alert.operator} ${alert.value} (currently ${currentValue})`;
+        
+        console.log(`WEATHER ALERT: ${alertMessage}`);
+        
+        // Show browser notification
+        if (Notification.permission === 'granted') {
+            new Notification(`Weather Alert: ${this.capitalizeCity(alert.city)}`, {
+                body: alertMessage,
+                icon: this.getWeatherIcon(this.weatherData[alert.city]?.condition),
+                tag: `weather-alert-${alert.id}`,
+                requireInteraction: true
+            });
+        }
+
+        // Call OCI Functions endpoint for alert processing
+        try {
+            /*
+            await fetch(`${API_CONFIG.baseUrl}/alerts/trigger`, {
+                method: 'POST',
+                headers: API_CONFIG.headers,
+                body: JSON.stringify({
+                    alert: alert,
+                    currentValue: currentValue,
+                    timestamp: new Date().toISOString()
+                })
+            });
+            */
+        } catch (error) {
+            console.error('Failed to send alert to backend:', error);
+        }
+
+        // Update last triggered time to prevent spam
+        alert.lastTriggered = Date.now();
+        this.saveData();
+    }
+
+    // ===================================================
+    // Utility Functions
+    // ===================================================
+
+    capitalizeCity(city) {
+        return city.split(' ')
+            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ');
+    }
+
+    getTimeAgo(date) {
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+        
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} minutes ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} hours ago`;
+        return date.toLocaleDateString();
+    }
+
+    getWeatherIcon(condition) {
+        const iconMap = {
+            'Sunny': '☀️',
+            'Partly Cloudy': '⛅',
+            'Cloudy': '☁️',
+            'Overcast': '☁️',
+            'Light Rain': '🌦️',
+            'Heavy Rain': '🌧️',
+            'Thunderstorm': '⛈️',
+            'Snow': '🌨️',
+            'Fog': '🌫️',
+            'Windy': '💨'
+        };
+        return iconMap[condition] || '🌤️';
+    }
+
+    updateCityOptions() {
+        if (!this.alertCity) return;
+        
+        this.alertCity.innerHTML = '<option value="">Select a city...</option>';
+        this.cities.forEach(city => {
+            const option = document.createElement('option');
+            option.value = city;
+            option.textContent = this.capitalizeCity(city);
+            this.alertCity.appendChild(option);
+        });
+    }
+
+    // ===================================================
+    // Data Refresh & Auto-update
+    // ===================================================
+
+    async refreshWeatherData() {
+        if (this.isLoading || this.cities.length === 0) return;
+        
+        this.isLoading = true;
+        const refreshButton = document.querySelector('.refresh-btn');
+        if (refreshButton) {
+            refreshButton.disabled = true;
+            refreshButton.innerHTML = '🔄 Refreshing...';
+        }
+
+        try {
+            const promises = this.cities.map(city => 
+                this.fetchWeatherData(city)
+                    .then(data => {
+                        this.weatherData[city] = data;
+                        return { city, success: true };
+                    })
+                    .catch(error => {
+                        console.error(`Failed to refresh ${city}:`, error);
+                        return { city, success: false, error };
+                    })
+            );
+
+            const results = await Promise.all(promises);
+            const successful = results.filter(r => r.success).length;
+            const failed = results.filter(r => !r.success).length;
+
+            this.updateWeatherDisplay();
+            this.checkAlerts();
+            this.saveData();
+
+            if (failed === 0) {
+                this.showMessage(`Weather data refreshed for ${successful} cities`, 'success');
+            } else {
+                this.showMessage(`Refreshed ${successful} cities, ${failed} failed`, 'warning');
+            }
+        } catch (error) {
+            console.error('Refresh failed:', error);
+            this.showMessage('Failed to refresh weather data', 'error');
+        } finally {
+            this.isLoading = false;
+            if (refreshButton) {
+                refreshButton.disabled = false;
+                refreshButton.innerHTML = '🔄 Refresh';
+            }
+        }
+    }
+
+    startAutoRefresh() {
+        if (this.refreshTimer) {
+            clearInterval(this.refreshTimer);
+        }
+        
+        this.refreshTimer = setInterval(() => {
+            if (!document.hidden) {
+                this.refreshWeatherData();
+            }
+        }, REFRESH_INTERVAL);
+    }
+
+    stopAutoRefresh() {
+        if (this.refreshTimer) {
+            clearInterval(this.refreshTimer);
+            this.refreshTimer = null;
+        }
+    }
+
+    // ===================================================
+    // Message Display
+    // ===================================================
+
+    showMessage(text, type = 'info') {
+        if (!this.messageDiv) return;
+        
+        this.messageDiv.innerHTML = '';
+        
+        if (type === 'loading') {
+            this.messageDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <div style="margin-top: 10px;">${text}</div>
+                </div>
+            `;
+        } else {
+            const messageEl = document.createElement('div');
+            messageEl.className = type;
+            messageEl.textContent = text;
+            this.messageDiv.appendChild(messageEl);
+            
+            // Auto-hide non-loading messages
+            if (type !== 'loading') {
+                setTimeout(() => {
+                    if (this.messageDiv.contains(messageEl)) {
+                        messageEl.style.opacity = '0';
+                        setTimeout(() => {
+                            if (this.messageDiv.contains(messageEl)) {
+                                this.messageDiv.removeChild(messageEl);
+                            }
+                        }, 300);
+                    }
+                }, 4000);
+            }
+        }
+    }
+
+    // ===================================================
+    // Notification Management
+    // ===================================================
+
+    requestNotificationPermission() {
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission().then(permission => {
+                if (permission === 'granted') {
+                    this.showMessage('Notifications enabled for weather alerts', 'success');
+                }
+            });
+        }
+    }
+
+    // ===================================================
+    // Export/Import Data
+    // ===================================================
+
+    exportData() {
+        const exportData = {
+            cities: this.cities,
+            alerts: this.alerts,
+            weatherData: this.weatherData,
+            exportDate: new Date().toISOString()
+        };
+
+        const dataStr = JSON.stringify(exportData, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `weather-tracker-data-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        this.showMessage('Data exported successfully', 'success');
+    }
+
+    importData(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importData = JSON.parse(e.target.result);
+                
+                if (importData.cities) this.cities = importData.cities;
+                if (importData.alerts) this.alerts = importData.alerts;
+                if (importData.weatherData) this.weatherData = importData.weatherData;
+                
+                this.updateWeatherDisplay();
+                this.updateAlertDisplay();
+                this.updateCityOptions();
+                this.saveData();
+                
+                this.showMessage('Data imported successfully', 'success');
+            } catch (error) {
+                console.error('Import failed:', error);
+                this.showMessage('Failed to import data', 'error');
+            }
+        };
+        reader.readAsText(file);
+    }
+}
+
+// ===================================================
+// Global Functions & Initialization
+// ===================================================
+
+// Global instance for HTML onclick handlers
+let weatherApp;
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    weatherApp = new WeatherApp();
+});
+
+// Service Worker registration for offline functionality
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+            .then(registration => {
+                console.log('SW registered: ', registration);
+            })
+            .catch(registrationError => {
+                console.log('SW registration failed: ', registrationError);
+            });
+    });
+}
+
+// Export for module usage
+if (typeof module !== 'undefined' && module.exports) {
+    module.exports = WeatherApp;
+}

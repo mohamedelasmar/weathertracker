@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Tracker - OCI Edition</title>
+    <meta name="description" content="Real-time weather monitoring with smart alerts powered by OCI">
+    <meta name="theme-color" content="#667eea">
+    
+    <style>
+        /* ===================================================
+           Weather Tracker - Complete Stylesheet
+           Modern CSS with Glass Morphism Design
+           =================================================== */
+
+        /* Reset and Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* Color Variables */
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            --success-color: #2ed573;
+            --error-color: #ff4757;
+            --warning-color: #ffa502;
+            --text-primary: #333;
+            --text-secondary: #666;
+            --text-light: #999;
+            
+            /* Glass Morphism Variables */
+            --glass-bg: rgba(255, 255, 255, 0.95);
+            --glass-border: rgba(255, 255, 255, 0.2);
+            --glass-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            --glass-backdrop: blur(10px);
+            
+            /* Spacing */
+            --spacing-xs: 5px;
+            --spacing-sm: 10px;
+            --spacing-md: 15px;
+            --spacing-lg: 20px;
+            --spacing-xl: 30px;
+            --spacing-xxl: 40px;
+            
+            /* Border Radius */
+            --radius-sm: 8px;
+            --radius-md: 10px;
+            --radius-lg: 15px;
+            --radius-xl: 20px;
+            --radius-round: 50%;
+            
+            /* Transitions */
+            --transition-fast: 0.2s ease;
+            --transition-normal: 0.3s ease;
+            --transition-slow: 0.5s ease;
+            
+            /* Shadows */
+            --shadow-light: 0 2px 10px rgba(0, 0, 0, 0.1);
+            --shadow-medium: 0 5px 20px rgba(0, 0, 0, 0.15);
+            --shadow-heavy: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Body and Layout */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: var(--spacing-lg);
+        }
+
+        /* Header Styles */
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: var(--spacing-xxl);
+            animation: fadeInDown 0.8s ease-out;
+        }
+
+        .header h1 {
+            font-size: clamp(2rem, 5vw, 3rem);
+            margin-bottom: var(--spacing-sm);
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: clamp(1rem, 2.5vw, 1.2rem);
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        /* Glass Card Styles */
+        .glass-card {
+            background: var(--glass-bg);
+            border-radius: var(--radius-xl);
+            padding: var(--spacing-xl);
+            box-shadow: var(--glass-shadow);
+            backdrop-filter: var(--glass-backdrop);
+            border: 1px solid var(--glass-border);
+            transition: all var(--transition-normal);
+        }
+
+        .glass-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        /* Search Section */
+        .search-section {
+            margin-bottom: var(--spacing-xl);
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .search-form {
+            display: flex;
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+            flex-wrap: wrap;
+            align-items: end;
+        }
+
+        .input-group {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .input-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: var(--spacing-xs);
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        /* Form Elements */
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e1e5e9;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            transition: all var(--transition-normal);
+            background: white;
+            font-family: inherit;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+            transform: translateY(-1px);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-light);
+        }
+
+        /* Button Styles */
+        .btn {
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition-normal);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-family: inherit;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-medium);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--secondary-gradient);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff4757 0%, #ff3742 100%);
+        }
+
+        /* Weather Grid */
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: var(--spacing-lg);
+            margin-bottom: var(--spacing-xl);
+        }
+
+        /* Weather Cards */
+        .weather-card {
+            background: var(--glass-bg);
+            border-radius: var(--radius-xl);
+            padding: 25px;
+            box-shadow: var(--glass-shadow);
+            backdrop-filter: var(--glass-backdrop);
+            border: 1px solid var(--glass-border);
+            transition: all var(--transition-normal);
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        .weather-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .city-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--spacing-lg);
+        }
+
+        .city-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-transform: capitalize;
+        }
+
+        .remove-btn {
+            background: var(--error-color);
+            color: white;
+            border: none;
+            width: 30px;
+            height: 30px;
+            border-radius: var(--radius-round);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all var(--transition-normal);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .remove-btn:hover {
+            background: #ff3742;
+            transform: scale(1.1) rotate(90deg);
+        }
+
+        /* Weather Info Grid */
+        .weather-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: var(--spacing-md);
+        }
+
+        .weather-item {
+            text-align: center;
+            padding: var(--spacing-md);
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: var(--radius-md);
+            transition: all var(--transition-normal);
+        }
+
+        .weather-item:hover {
+            background: rgba(102, 126, 234, 0.15);
+            transform: scale(1.02);
+        }
+
+        .weather-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xs);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 500;
+        }
+
+        .weather-value {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .temp-value {
+            font-size: 2.2rem;
+            color: #667eea;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        /* Last Updated */
+        .last-updated {
+            text-align: center;
+            margin-top: var(--spacing-md);
+            font-size: 0.8rem;
+            color: var(--text-light);
+            font-style: italic;
+        }
+
+        /* Alerts Section */
+        .alerts-section {
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: var(--spacing-lg);
+            color: var(--text-primary);
+            text-align: center;
+            position: relative;
+        }
+
+        .section-title::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 50px;
+            height: 3px;
+            background: var(--primary-gradient);
+            border-radius: 2px;
+        }
+
+        /* Alert Form */
+        .alert-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: var(--spacing-md);
+            margin-bottom: var(--spacing-lg);
+        }
+
+        /* Alert List */
+        .alert-list {
+            max-height: 300px;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+
+        .alert-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .alert-list::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+            border-radius: 3px;
+        }
+
+        .alert-list::-webkit-scrollbar-thumb {
+            background: rgba(102, 126, 234, 0.5);
+            border-radius: 3px;
+        }
+
+        .alert-list::-webkit-scrollbar-thumb:hover {
+            background: rgba(102, 126, 234, 0.7);
+        }
+
+        /* Alert Items */
+        .alert-item {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: var(--radius-md);
+            padding: var(--spacing-md);
+            margin-bottom: var(--spacing-sm);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all var(--transition-normal);
+            border: 1px solid transparent;
+        }
+
+        .alert-item:hover {
+            background: rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.3);
+            transform: translateX(5px);
+        }
+
+        .alert-info {
+            flex: 1;
+        }
+
+        .alert-city {
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 2px;
+            text-transform: capitalize;
+        }
+
+        .alert-condition {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        /* Message Styles */
+        .message {
+            margin: var(--spacing-sm) 0;
+        }
+
+        .loading {
+            text-align: center;
+            padding: var(--spacing-xxl);
+            color: var(--text-secondary);
+        }
+
+        .error {
+            background: var(--error-color);
+            color: white;
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            text-align: center;
+            margin: var(--spacing-sm) 0;
+            animation: shake 0.5s ease-in-out;
+        }
+
+        .success {
+            background: var(--success-color);
+            color: white;
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            text-align: center;
+            margin: var(--spacing-sm) 0;
+            animation: slideInRight 0.5s ease-out;
+        }
+
+        .warning {
+            background: var(--warning-color);
+            color: white;
+            padding: var(--spacing-md);
+            border-radius: var(--radius-md);
+            text-align: center;
+            margin: var(--spacing-sm) 0;
+        }
+
+        /* Spinner Animation */
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: var(--radius-round);
+            border-top: 3px solid white;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto var(--spacing-sm);
+        }
+
+        /* Refresh Button */
+        .refresh-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 60px;
+            height: 60px;
+            border-radius: var(--radius-round);
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            box-shadow: var(--shadow-medium);
+            transition: all var(--transition-normal);
+            z-index: 1000;
+        }
+
+        .refresh-btn:hover {
+            transform: scale(1.1);
+            box-shadow: var(--shadow-heavy);
+        }
+
+        .refresh-btn:active {
+            transform: scale(0.95);
+        }
+
+        /* Animations */
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        /* Utility Classes */
+        .text-center { text-align: center; }
+        .hidden { display: none; }
+        .visible { display: block; }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                padding: var(--spacing-md);
+            }
+            
+            .search-form {
+                flex-direction: column;
+            }
+            
+            .weather-info {
+                grid-template-columns: 1fr;
+            }
+            
+            .alert-form {
+                grid-template-columns: 1fr;
+            }
+            
+            .weather-card {
+                padding: var(--spacing-lg);
+            }
+            
+            .glass-card {
+                padding: var(--spacing-lg);
+            }
+
+            .refresh-btn {
+                bottom: 10px;
+                right: 10px;
+                width: 50px;
+                height: 50px;
+                font-size: 1.2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .weather-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .city-header {
+                flex-direction: column;
+                gap: var(--spacing-sm);
+                text-align: center;
+            }
+            
+            .weather-info {
+                grid-template-columns: 1fr;
+                gap: var(--spacing-sm);
+            }
+            
+            .temp-value {
+                font-size: 1.8rem;
+            }
+            
+            .weather-value {
+                font-size: 1.4rem;
+            }
+        }
+
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --text-primary: #e1e1e1;
+                --text-secondary: #b1b1b1;
+                --text-light: #888;
+                --glass-bg: rgba(0, 0, 0, 0.7);
+            }
+            
+            .form-input {
+                background: rgba(255, 255, 255, 0.1);
+                color: white;
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+            
+            .form-input::placeholder {
+                color: rgba(255, 255, 255, 0.5);
+            }
+        }
+
+        /* Focus styles for accessibility */
+        .btn:focus,
+        .form-input:focus,
+        .remove-btn:focus {
+            outline: 2px solid #667eea;
+            outline-offset: 2px;
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+            
+            .btn,
+            .remove-btn,
+            .refresh-btn {
+                display: none;
+            }
+            
+            .glass-card,
+            .weather-card {
+                background: white;
+                box-shadow: none;
+                border: 1px solid #ccc;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🌤️ Weather Tracker</h1>
+            <p>Real-time weather monitoring with smart alerts</p>
+        </div>
+
+        <div class="search-section glass-card">
+            <form class="search-form" id="searchForm">
+                <div class="input-group">
+                    <label for="cityInput">City Name</label>
+                    <input type="text" id="cityInput" class="form-input" placeholder="Enter city name..." required>
+                </div>
+                <div class="input-group">
+                    <button type="submit" class="btn">Add City</button>
+                </div>
+            </form>
+            
+            <div id="message"></div>
+        </div>
+
+        <div id="weatherContainer">
+            <div class="weather-grid" id="weatherGrid">
+                <!-- Weather cards will be dynamically added here -->
+            </div>
+        </div>
+
+        <div class="alerts-section glass-card">
+            <h2 class="section-title">Weather Alerts</h2>
+            
+            <form class="alert-form" id="alertForm">
+                <div class="input-group">
+                    <label for="alertCity">City</label>
+                    <select id="alertCity" class="form-input" required>
+                        <option value="">Select a city...</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="alertType">Alert Type</label>
+                    <select id="alertType" class="form-input" required>
+                        <option value="">Select type...</option>
+                        <option value="temperature">Temperature</option>
+                        <option value="humidity">Humidity</option>
+                        <option value="condition">Weather Condition</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="alertOperator">Condition</label>
+                    <select id="alertOperator" class="form-input" required>
+                        <option value="">Select...</option>
+                        <option value="above">Above</option>
+                        <option value="below">Below</option>
+                        <option value="equals">Equals</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label for="alertValue">Value</label>
+                    <input type="text" id="alertValue" class="form-input" placeholder="e.g., 30, Rainy" required>
+                </div>
+                <div class="input-group">
+                    <button type="submit" class="btn btn-secondary">Create Alert</button>
+                </div>
+            </form>
+
+            <div class="alert-list" id="alertList">
+                <!-- Alert items will be dynamically added here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Refresh Button -->
+    <button class="refresh-btn" id="refreshBtn" title="Refresh Weather Data">🔄</button>
+
+    <script>
+        /**
+         * Weather Tracker - Complete JavaScript
+         * OCI Integration Ready
+         */
+
+        // ===================================================
+        // Configuration & Constants
+        // ===================================================
+
+        const API_CONFIG = {
+            baseUrl: 'https://your-api-gateway-url.oci.oraclecloud.com/api',
+            weatherEndpoint: '/weather',
+            alertsEndpoint: '/alerts',
+            // Add your API key or authentication headers here
+            headers: {
+                'Content-Type': 'application/json',
+                // 'Authorization': 'Bearer your-jwt-token',
+                // 'X-API-Key': 'your-api-key'
+            }
+        };
+
+        const STORAGE_KEYS = {
+            cities: 'weatherCities',
+            alerts: 'weatherAlerts',
+            weatherData: 'weatherData'
+        };
+
+        const WEATHER_CONDITIONS = [
+            'Sunny', 'Partly Cloudy', 'Cloudy', 'Overcast', 
+            'Light Rain', 'Heavy Rain', 'Thunderstorm', 
+            'Snow', 'Fog', 'Windy'
+        ];
+
+        const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
+
+        // ===================================================
+        // Application State
+        // ===================================================
+
+        class WeatherApp {
+            constructor() {
+                this.cities = [];
+                this.alerts = [];
+                this.weatherData = {};
+                this.isLoading = false;
+                this.refreshTimer = null;
+                
+                this.initializeElements();
+                this.bindEvents();
+                this.init();
+            }
+
+            // ===================================================
+            // Initialization
+            // ===================================================
+
+            initializeElements() {
+                // Form elements
+                this.searchForm = document.getElementById('searchForm');
+                this.cityInput = document.getElementById('cityInput');
+                this.alertForm = document.getElementById('alertForm');
+                this.refreshBtn = document.getElementById('refreshBtn');
+                
+                // Alert form elements
+                this.alertCity = document.getElementById('alertCity');
+                this.alertType = document.getElementById('alertType');
+                this.alertOperator = document.getElementById('alertOperator');
+                this.alertValue = document.getElementById('alertValue');
+                
+                // Display elements
+                this.weatherGrid = document.getElementById('weatherGrid');
+                this.alertList = document.getElementById('alertList');
+                this.messageDiv = document.getElementById('message');
+            }
+
+            bindEvents() {
+                this.searchForm.addEventListener('submit', (e) => this.handleAddCity(e));
+                this.alertForm.addEventListener('submit', (e) => this.handleCreateAlert(e));
+                this.refreshBtn.addEventListener('click', () => this.refreshWeatherData());
+                
+                // Keyboard shortcuts
+                document.addEventListener('keydown', (e) => {
+                    if (e.ctrlKey && e.key === 'r') {
+                        e.preventDefault();
+                        this.refreshWeatherData();
+                    }
+                });
+
+                // Visibility change handler for auto-refresh
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        this.refreshWeatherData();
+                    }
+                });
+            }
+
+            async init() {
+                this.showMessage('Initializing Weather Tracker...', 'loading');
+                
+                try {
+                    this.loadStoredData();
+                    await this.refreshWeatherData();
+                    this.updateWeatherDisplay();
+                    this.updateAlertDisplay();
+                    this.updateCityOptions();
+                    this.startAutoRefresh();
+                    this.requestNotificationPermission();
+                    
+                    this.showMessage('Weather Tracker ready!', 'success');
+                } catch (error) {
+                    console.error('Initialization error:', error);
+                    this.showMessage('Failed to initialize. Using offline mode.', 'error');
+                }
+            }
+
+            // ===================================================
+            // Data Management
+            // ===================================================
+
+            loadStoredData() {
+                const storedCities = localStorage.getItem(STORAGE_KEYS.cities);
+                const storedAlerts = localStorage.getItem(STORAGE_KEYS.alerts);
+                const storedWeatherData = localStorage.getItem(STORAGE_KEYS.weatherData);
+                
+                if (storedCities) {
+                    this.cities = JSON.parse(storedCities);
+                }
+                
+                if (storedAlerts) {
+                    this.alerts = JSON.parse(storedAlerts);
+                }
+                
+                if (storedWeatherData) {
+                    this.weatherData = JSON.parse(storedWeatherData);
+                    // Check if data is recent (less than 1 hour old)
+                    const dataAge = Date.now() - (this.weatherData.lastUpdated || 0);
+                    if (dataAge > 60 * 60 * 1000) {
+                        this.weatherData = {};
+                    }
+                }
+            }
+
+            saveData() {
+                try {
+                    localStorage.setItem(STORAGE_KEYS.cities, JSON.stringify(this.cities));
+                    localStorage.setItem(STORAGE_KEYS.alerts, JSON.stringify(this.alerts));
+                    this.weatherData.lastUpdated = Date.now();
+                    localStorage.setItem(STORAGE_KEYS.weatherData, JSON.stringify(this.weatherData));
+                } catch (error) {
+                    console.error('Failed to save data:', error);
+                }
+            }
+
+            // ===================================================
+            // Weather API Integration
+            // ===================================================
+
+            async fetchWeatherData(city) {
+                try {
+                    // Uncomment and modify this section when connecting to your OCI API
+                    /*
+                    const response = await fetch(`${API_CONFIG.baseUrl}${API_CONFIG.weatherEndpoint}?city=${encodeURIComponent(city)}`, {
+                        method: 'GET',
+                        headers: API_CONFIG.headers
+                    });
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const data = await response.json();
+                    return this.normalizeWeatherData(data, city);
+                    */
+                    
+                    // Mock data for demonstration
+                    return this.generateMockWeatherData(city);
+                } catch (error) {
+                    console.error(`Failed to fetch weather for ${city}:`, error);
+                    throw new Error(`Unable to fetch weather data for ${city}`);
+                }
+            }
+
+            generateMockWeatherData(city) {
+                const condition = WEATHER_CONDITIONS[Math.floor(Math.random() * WEATHER_CONDITIONS.length)];
+                const temperature = Math.round(Math.random() * 35 + 5); // 5-40°C
+                const humidity = Math.round(Math.random() * 50 + 30); // 30-80%
+                const windSpeed = Math.round(Math.random() * 20 + 5); // 5-25 km/h
+                const pressure = Math.round(Math.random() * 50 + 1000); // 1000-1050 hPa
+                
+                return {
+                    city: city,
+                    temperature: temperature,
+                    humidity: humidity,
+                    condition: condition,
+                    windSpeed: windSpeed,
+                    pressure: pressure,
+                    feelsLike: temperature + Math.round(Math.random() * 6 - 3),
+                    uvIndex: Math.round(Math.random() * 11),
+                    visibility: Math.round(Math.random() * 15 + 5),
+                    lastUpdated: new Date().toISOString()
+                };
+            }
+
+            normalizeWeatherData(data, city) {
+                // Normalize data from different API sources
+                return {
+                    city: city,
+                    temperature: data.temperature || data.temp || 0,
+                    humidity: data.humidity || 0,
+                    condition: data.condition || data.weather || 'Unknown',
+                    windSpeed: data.windSpeed || data.
