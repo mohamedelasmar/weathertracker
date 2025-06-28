@@ -25,7 +25,7 @@ terraform {
 locals {
   bucket_name = var.bucket_name != "" ? var.bucket_name : "${var.project_name}-${var.environment}-frontend"
   
-  common_tags = {
+  bucket_common_tags = {
     Project     = var.project_name
     Environment = var.environment
     Component   = "static-website"
@@ -57,7 +57,7 @@ resource "oci_objectstorage_bucket" "static_website_bucket" {
   }
 
   # Tags
-  freeform_tags = local.common_tags
+  freeform_tags = local.bucket_common_tags
 }
 
 
