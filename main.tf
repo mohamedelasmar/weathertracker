@@ -38,11 +38,7 @@ resource "oci_objectstorage_bucket" "static_website_bucket" {
   name           = local.bucket_name
   namespace      = data.oci_objectstorage_namespace.ns.namespace
 
-  # Make bucket public for static website hosting
   access_type = "ObjectRead"
-  
-  # Add public access policy
-  public_access_type = "ObjectRead"
 
   # Enable versioning for backup purposes
   versioning = "Enabled"
