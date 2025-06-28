@@ -21,20 +21,6 @@ variable "bucket_name" {
   default     = ""
 }
 
-variable "user_ocid" {
-  description = "The OCID of the user"
-  type        = string
-}
-
-variable "fingerprint" {
-  description = "The fingerprint of the user's API key"
-  type        = string
-}
-
-variable "private_key_path" {
-  description = "The path to the user's private key file"
-  type        = string
-}
 
 variable "region" {
   description = "The OCI region"
@@ -42,10 +28,6 @@ variable "region" {
   default     = "us-ashburn-1"
 }
 
-variable "ssh_public_key" {
-  description = "SSH public key for worker nodes"
-  type        = string
-}
 
 variable "node_count" {
   description = "Number of worker nodes per availability domain"
