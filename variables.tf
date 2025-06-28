@@ -58,3 +58,7 @@ variable "kubernetes_version" {
   type        = string
   default     = "v1.28.2"  # Check latest supported version
 }
+
+variable "ssh_public_key" {
+  type        = string
+}
