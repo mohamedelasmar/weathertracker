@@ -24,12 +24,12 @@ locals {
   cluster_name = "${var.project_name}-${var.environment}-cluster"
   
   # Network CIDR blocks
-  vcn_cidr               = "10.0.0.0/16"
+vcn_cidr                    = "10.0.0.0/16"
   control_plane_subnet_cidr = "10.0.1.0/24"
-  worker_subnet_cidr     = "10.0.2.0/24"
-  lb_subnet_cidr         = "10.0.3.0/24"
-  pod_subnet_cidr        = "10.0.10.0/24"
-  service_lb_cidr        = "10.0.20.0/24"
+  worker_subnet_cidr        = "10.0.2.0/24"
+  lb_subnet_cidr            = "10.0.3.0/24"
+  pod_subnet_cidr           = "10.0.64.0/18"    
+  service_lb_cidr           = "10.0.32.0/20" 
   
   common_tags = {
     Project     = var.project_name
