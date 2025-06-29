@@ -1,11 +1,22 @@
+# ===================================================
+# Data Sources
+# ===================================================
+
+
 data "oci_core_images" "node_images" {
   compartment_id           = var.compartment_ocid
   operating_system         = "Oracle Linux"
   operating_system_version = "8"
-  shape                    = var.node_shape
   state                    = "AVAILABLE"
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
+  
+  # Filter for images compatible with OKE
+  filter {
+    name   = "display_name"
+    values = ["Oracle-Linux-8.*-OKE-.*"]
+    regex  = true
+  }
 }
 
 data "oci_containerengine_cluster_option" "cluster_option" {
@@ -23,12 +34,12 @@ data "oci_containerengine_node_pool_option" "node_pool_option" {
 locals {
   cluster_name = "${var.project_name}-${var.environment}-cluster"
   
-  # Network CIDR blocks
+  # Network CIDR blocks - Non-overlapping ranges
   vcn_cidr               = "10.0.0.0/16"      # VCN: 10.0.0.0 - 10.0.255.255
   control_plane_subnet_cidr = "10.0.1.0/24"  # Control plane: 10.0.1.0 - 10.0.1.255
   worker_subnet_cidr     = "10.0.2.0/24"     # Workers: 10.0.2.0 - 10.0.2.255
   lb_subnet_cidr         = "10.0.3.0/24"     # Load balancer: 10.0.3.0 - 10.0.3.255
-  pod_subnet_cidr        = "172.16.0.0/16"   # Pods: 172.16.0.0 - 172.16.255.255 (separate range)
+  pod_subnet_cidr        = "10.0.64.0/18"    # Pod subnet: 10.0.64.0 - 10.0.127.255 (within VCN)
   service_lb_cidr        = "192.168.0.0/20"  # Services: 192.168.0.0 - 192.168.15.255 (separate range)
   
   common_tags = {
@@ -321,6 +332,21 @@ resource "oci_core_subnet" "lb_subnet" {
   freeform_tags = local.common_tags
 }
 
+# Pod Subnet (Regional) - for OCI_VCN_IP_NATIVE
+resource "oci_core_subnet" "pod_subnet" {
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.oke_vcn.id
+  display_name   = "${local.cluster_name}-pod-subnet"
+  cidr_block     = local.pod_subnet_cidr
+  dns_label      = "pods"
+  
+  prohibit_public_ip_on_vnic = true
+  route_table_id             = oci_core_route_table.private_rt.id
+  security_list_ids          = [oci_core_security_list.worker_sl.id]  # Use same security list as workers
+  
+  freeform_tags = local.common_tags
+}
+
 # ===================================================
 # OKE Cluster
 # ===================================================
@@ -397,6 +423,15 @@ resource "oci_core_network_security_group" "worker_nsg" {
   freeform_tags = local.common_tags
 }
 
+# Pod NSG for OCI_VCN_IP_NATIVE
+resource "oci_core_network_security_group" "pod_nsg" {
+  compartment_id = var.compartment_ocid
+  vcn_id         = oci_core_vcn.oke_vcn.id
+  display_name   = "${local.cluster_name}-pod-nsg"
+  
+  freeform_tags = local.common_tags
+}
+
 # NSG Rules for Control Plane
 resource "oci_core_network_security_group_security_rule" "control_plane_ingress" {
   network_security_group_id = oci_core_network_security_group.control_plane_nsg.id
@@ -435,6 +470,31 @@ resource "oci_core_network_security_group_security_rule" "worker_ingress_interna
   protocol                  = "all"
   source                    = oci_core_network_security_group.worker_nsg.id
   source_type               = "NETWORK_SECURITY_GROUP"
+}
+
+# Pod NSG Rules
+resource "oci_core_network_security_group_security_rule" "pod_ingress_from_workers" {
+  network_security_group_id = oci_core_network_security_group.pod_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "all"
+  source                    = oci_core_network_security_group.worker_nsg.id
+  source_type               = "NETWORK_SECURITY_GROUP"
+}
+
+resource "oci_core_network_security_group_security_rule" "pod_ingress_internal" {
+  network_security_group_id = oci_core_network_security_group.pod_nsg.id
+  direction                 = "INGRESS"
+  protocol                  = "all"
+  source                    = oci_core_network_security_group.pod_nsg.id
+  source_type               = "NETWORK_SECURITY_GROUP"
+}
+
+resource "oci_core_network_security_group_security_rule" "pod_egress_all" {
+  network_security_group_id = oci_core_network_security_group.pod_nsg.id
+  direction                 = "EGRESS"
+  protocol                  = "all"
+  destination               = "0.0.0.0/0"
+  destination_type          = "CIDR_BLOCK"
 }
 
 # ===================================================
@@ -476,11 +536,23 @@ resource "oci_containerengine_node_pool" "oke_node_pool" {
     freeform_tags = local.common_tags
   }
   
+  # Add pod network configuration to match cluster
+  node_pool_pod_network_option_details {
+    cni_type = "OCI_VCN_IP_NATIVE"
+    
+    pod_nsg_ids = [oci_core_network_security_group.pod_nsg.id]
+    pod_subnet_ids = [oci_core_subnet.pod_subnet.id]
+  }
+  
   node_shape = var.node_shape
   
-  node_shape_config {
-    ocpus         = var.node_ocpus
-    memory_in_gbs = var.node_memory_gb
+  # Only include shape config for flexible shapes
+  dynamic "node_shape_config" {
+    for_each = length(regexall("Flex", var.node_shape)) > 0 ? [1] : []
+    content {
+      ocpus         = var.node_ocpus
+      memory_in_gbs = var.node_memory_gb
+    }
   }
   
   node_source_details {
