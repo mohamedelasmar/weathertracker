@@ -38,7 +38,7 @@ variable "node_count" {
 variable "node_shape" {
   description = "Shape of the worker nodes"
   type        = string
-  default     = "VM.Standard.E4.Flex"
+  default     = "VM.Standard.E3.Flex"
 }
 
 variable "node_ocpus" {
