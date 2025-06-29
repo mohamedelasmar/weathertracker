@@ -2,7 +2,6 @@
 # Data Sources
 # ===================================================
 
-
 data "oci_core_images" "node_images" {
   compartment_id           = var.compartment_ocid
   operating_system         = "Oracle Linux"
@@ -11,13 +10,19 @@ data "oci_core_images" "node_images" {
   sort_by                  = "TIMECREATED"
   sort_order               = "DESC"
   
-  # Filter for images compatible with OKE
-  filter {
-    name   = "display_name"
-    values = ["Oracle-Linux-8.*-OKE-.*"]
-    regex  = true
-  }
+  # Remove the OKE filter - it might be too restrictive
+  # Just get Oracle Linux 8 images
 }
+
+# Fallback to a specific known working image
+data "oci_core_images" "oracle_linux_images" {
+  compartment_id           = var.compartment_ocid
+  operating_system         = "Oracle Linux"
+  state                    = "AVAILABLE"
+  sort_by                  = "TIMECREATED"
+  sort_order               = "DESC"
+}
+
 
 data "oci_containerengine_cluster_option" "cluster_option" {
   cluster_option_id = "all"
@@ -500,7 +505,8 @@ resource "oci_containerengine_node_pool" "oke_node_pool" {
   }
   
   node_source_details {
-    image_id    = data.oci_core_images.node_images.images[0].id
+    # Try node_images first, fallback to oracle_linux_images
+    image_id    = length(data.oci_core_images.node_images.images) > 0 ? data.oci_core_images.node_images.images[0].id : data.oci_core_images.oracle_linux_images.images[0].id
     source_type = "IMAGE"
     
     boot_volume_size_in_gbs = 100

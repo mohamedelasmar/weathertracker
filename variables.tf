@@ -38,7 +38,7 @@ variable "node_count" {
 variable "node_shape" {
   description = "Shape of the worker nodes"
   type        = string
-  default     = "VM.Standard2.4"
+  default     = "VM.Standard.E4.Flex"
 }
 
 variable "node_ocpus" {
@@ -56,7 +56,7 @@ variable "node_memory_gb" {
 variable "kubernetes_version" {
   description = "Kubernetes version for the cluster"
   type        = string
-  default     = "v1.33.1"
+  default     = "v1.28.2"  # Check latest supported version
 }
 
 variable "ssh_public_key" {
