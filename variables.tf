@@ -38,19 +38,19 @@ variable "node_count" {
 variable "node_shape" {
   description = "Shape of the worker nodes"
   type        = string
-  default     = "VM.Standard.E3.Flex"
+  default     = "VM.Standard.A1.Flex"
 }
 
 variable "node_ocpus" {
   description = "Number of OCPUs for worker nodes (for flexible shapes)"
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "node_memory_gb" {
   description = "Memory in GB for worker nodes (for flexible shapes)"
   type        = number
-  default     = 16
+  default     = 6
 }
 
 variable "kubernetes_version" {
