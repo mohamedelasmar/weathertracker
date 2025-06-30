@@ -505,8 +505,7 @@ resource "oci_containerengine_node_pool" "oke_node_pool" {
   }
   
   node_source_details {
-    # Try node_images first, fallback to oracle_linux_images
-    image_id    = length(data.oci_core_images.node_images.images) > 0 ? data.oci_core_images.node_images.images[0].id : data.oci_core_images.oracle_linux_images.images[0].id
+    image_id    = "ocid1.image.oc1.iad.aaaaaaaa3ea3lqnqohy7qdoxud46vrcceqcoxhkl6s64fjy2xnehjuqjujea"
     source_type = "IMAGE"
     
     boot_volume_size_in_gbs = 100
