@@ -56,7 +56,7 @@ variable "node_memory_gb" {
 variable "kubernetes_version" {
   description = "Kubernetes version for the cluster"
   type        = string
-  default     = " v1.33.1"
+  default     = "1.33"
 }
 
 variable "ssh_public_key" {
