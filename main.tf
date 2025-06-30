@@ -1,5 +1,6 @@
 provider "oci" {
   tenancy_ocid     = var.tenancy_ocid
+  region           = "us-ashburn-1
 }
 
 # ===================================================
